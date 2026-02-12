@@ -129,13 +129,13 @@ class KeyboardInput:
         while self._running:
             try:
                 if sys.platform == "win32":
-                    # Windows: msvcrt.kbhit() controlla se c'è input disponibile
+                    # Windows: msvcrt.kbhit() checks if input is available
                     if msvcrt.kbhit():
                         char = msvcrt.getch()
                         with self._lock:
                             self._key_buffer.append(char)
                 else:
-                    # Linux/Unix: select controlla se c'è input disponibile
+                    # Linux/Unix: select checks if input is available
                     fd = sys.stdin.fileno()
                     if select.select([fd], [], [], 0.01)[0]:
                         data = os.read(fd, 64)
@@ -178,7 +178,7 @@ class KeyboardInput:
 
         # === WINDOWS ARROW KEY HANDLING ===
         if sys.platform == "win32":
-            # Windows invia bytes, convertiamoli
+            # Windows sends bytes, convert them
             if isinstance(char, bytes):
                 char_byte = char
                 try:
@@ -189,10 +189,10 @@ class KeyboardInput:
                 char_byte_val = ord(char) if len(char) > 0 else 0
                 char_byte = char.encode('latin-1', errors='ignore')
 
-            # Su Windows, i tasti speciali sono preceduti da 0xe0 (224) o 0x00 (0)
+            # On Windows, special keys are preceded by 0xe0 (224) or 0x00 (0)
             if char == '\xe0' or char == '\x00' or (
                     isinstance(char_byte, bytes) and char_byte in (b'\xe0', b'\x00')):
-                # Leggi il prossimo byte che contiene il codice del tasto
+                # Read the next byte containing the key code
                 with self._lock:
                     if self._key_buffer:
                         next_char = self._key_buffer.pop(0)
@@ -202,7 +202,7 @@ class KeyboardInput:
                 if next_char is not None:
                     next_char = _as_str(next_char)
 
-                    # Codici Windows per i tasti freccia
+                    # Windows arrow key codes
                     # H = 72 (0x48) = UP
                     # P = 80 (0x50) = DOWN
                     # M = 77 (0x4D) = RIGHT
@@ -217,19 +217,17 @@ class KeyboardInput:
                         return KeyCode.LEFT
                 return KeyCode.UNKNOWN
 
-            # Enter su Windows
             elif char == '\r' or char == '\n':
                 return KeyCode.ENTER
 
-            # Escape su Windows
             elif char == '\x1b':
                 return KeyCode.ESC
 
         # === LINUX/UNIX ARROW KEY HANDLING ===
         else:
-            # Su Linux/Unix, le frecce inviano sequenze ESC [ A/B/C/D
+            # On Linux/Unix, arrows send ESC [ A/B/C/D sequences
             if char == '\x1b':  # ESC character
-                # Aspetta per vedere se è una sequenza escape o solo ESC
+                # Wait to see if it's an escape sequence or just ESC
                 deadline = time.monotonic() + 0.03
                 prefix = None
                 arrow_char = None
@@ -240,11 +238,10 @@ class KeyboardInput:
                             prefix = _as_str(self._key_buffer.pop(0))
                             arrow_char = _as_str(self._key_buffer.pop(0))
                             break
-                    time.sleep(0.001)  # Piccolo timeout per distinguere ESC da sequenze
+                    time.sleep(0.001)  # Small timeout to distinguish ESC from sequences
 
                 if prefix in ('[', 'O') and arrow_char is not None:
-                    # È una sequenza escape, rimuovi il '['
-                    # Leggi il carattere successivo
+                    # Escape sequence detected, consume '[' and map direction
                     # A = UP, B = DOWN, C = RIGHT, D = LEFT
                     if arrow_char == 'A':
                         return KeyCode.UP
@@ -256,14 +253,12 @@ class KeyboardInput:
                         return KeyCode.LEFT
                     return KeyCode.UNKNOWN
 
-                # Se non è una sequenza arrow, è solo ESC
+                # If not an arrow sequence, it's just ESC
                 return KeyCode.ESC
 
-            # Enter su Linux
             elif char == '\r' or char == '\n':
                 return KeyCode.ENTER
 
-        # Carattere normale o non riconosciuto
         return KeyCode.UNKNOWN
 
 @dataclass
