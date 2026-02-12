@@ -168,6 +168,10 @@ class KeyboardInput:
         with self._lock:
             if not self._key_buffer:
                 return None
+            # DEBUG: stampa il contenuto del buffer
+            print(f"Buffer: {[repr(x) for x in self._key_buffer[:5]]}")
+            char = self._key_buffer.pop(0)
+            print(f"Char estratto: {repr(char)}")
             char = self._key_buffer.pop(0)
 
         char = _as_str(char)
