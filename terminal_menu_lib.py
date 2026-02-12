@@ -154,67 +154,92 @@ class KeyboardInput:
         Returns:
             KeyCode enum or None if no key available
         """
-        # 1. Preleviamo il primo carattere col Lock
         with self._lock:
             if not self._key_buffer:
                 return None
+
             char = self._key_buffer.pop(0)
 
-        # === WINDOWS ARROW KEY HANDLING ===
-        if sys.platform == "win32":
+            # === WINDOWS ARROW KEY HANDLING ===
+            if sys.platform == "win32":
+                # Windows invia bytes, convertiamoli
+                if isinstance(char, bytes):
+                    char_byte = char
+                    try:
+                        char = char.decode('utf-8', errors='ignore')
+                    except:
+                        char_byte_val = ord(char_byte) if len(char_byte) > 0 else 0
+                else:
+                    char_byte_val = ord(char) if len(char) > 0 else 0
+                    char_byte = char.encode('latin-1', errors='ignore')
 
-            # Recuperiamo il byte se necessario
-            if isinstance(char, bytes):
-                try:
-                    char_str = char.decode('utf-8', errors='ignore')
-                except:
-                    char_str = str(char)
-            else:
-                char_str = char
-
-            if char_str == '\xe0' or char_str == '\x00':
-                with self._lock:  # Riacquisisco il lock per leggere il prossimo char
+                # Su Windows, i tasti speciali sono preceduti da 0xe0 (224) o 0x00 (0)
+                if char == '\xe0' or char == '\x00' or (
+                        isinstance(char_byte, bytes) and char_byte in (b'\xe0', b'\x00')):
+                    # Leggi il prossimo byte che contiene il codice del tasto
                     if self._key_buffer:
                         next_char = self._key_buffer.pop(0)
-                        # ... Logica di decodifica Windows (omessa per brevità, usa quella originale se serve)
-                        # Se serve il codice completo Windows dimmelo, ma qui il focus è Linux.
-                        # Per ora assumiamo che su Linux questo blocco venga saltato.
-                return KeyCode.UNKNOWN
+                        if isinstance(next_char, bytes):
+                            next_char = next_char.decode('latin-1', errors='ignore')
 
-            elif char == '\r' or char == '\n':
-                return KeyCode.ENTER
-            elif char == '\x1b':
-                return KeyCode.ESC
+                        # Codici Windows per i tasti freccia
+                        # H = 72 (0x48) = UP
+                        # P = 80 (0x50) = DOWN
+                        # M = 77 (0x4D) = RIGHT
+                        # K = 75 (0x4B) = LEFT
+                        if next_char == 'H' or ord(next_char) == 72:
+                            return KeyCode.UP
+                        elif next_char == 'P' or ord(next_char) == 80:
+                            return KeyCode.DOWN
+                        elif next_char == 'M' or ord(next_char) == 77:
+                            return KeyCode.RIGHT
+                        elif next_char == 'K' or ord(next_char) == 75:
+                            return KeyCode.LEFT
+                    return KeyCode.UNKNOWN
 
-        # === LINUX/UNIX ARROW KEY HANDLING ===
-        else:
-            if char == '\x1b':  # ESC character
-                # ORA dormiamo SENZA il lock, permettendo a _input_loop di scrivere
-                time.sleep(0.02)
+                # Enter su Windows
+                elif char == '\r' or char == '\n':
+                    return KeyCode.ENTER
 
-                # Riacquisiamo il lock per controllare se è arrivato altro
-                with self._lock:
-                    if self._key_buffer and self._key_buffer[0] == '[':
-                        self._key_buffer.pop(0)  # Rimuovi '['
+                # Escape su Windows
+                elif char == '\x1b':
+                    return KeyCode.ESC
 
-                        if self._key_buffer:
-                            arrow_char = self._key_buffer.pop(0)
-                            if arrow_char == 'A':
-                                return KeyCode.UP
-                            elif arrow_char == 'B':
-                                return KeyCode.DOWN
-                            elif arrow_char == 'C':
-                                return KeyCode.RIGHT
-                            elif arrow_char == 'D':
-                                return KeyCode.LEFT
+            # === LINUX/UNIX ARROW KEY HANDLING ===
+            else:
+                # Su Linux/Unix, le frecce inviano sequenze ESC [ A/B/C/D
+                if char == '\x1b':  # ESC character
+                    # Aspetta per vedere se è una sequenza escape o solo ESC
+                    time.sleep(0.02)  # Piccolo timeout per distinguere ESC da sequenze
 
-                return KeyCode.ESC
+                    if len(self._key_buffer) >= 2 and self._key_buffer[0] == '[':
+                        # È una sequenza escape, rimuovi il '['
+                        self._key_buffer.pop(0)
 
-            elif char == '\r' or char == '\n':
-                return KeyCode.ENTER
+                        # Leggi il carattere successivo
+                        arrow_char = self._key_buffer.pop(0)
 
-        return KeyCode.UNKNOWN
+                        # A = UP, B = DOWN, C = RIGHT, D = LEFT
+                        if arrow_char == 'A':
+                            return KeyCode.UP
+                        elif arrow_char == 'B':
+                            return KeyCode.DOWN
+                        elif arrow_char == 'C':
+                            return KeyCode.RIGHT
+                        elif arrow_char == 'D':
+                            return KeyCode.LEFT
+                        else:
+                            return KeyCode.UNKNOWN
 
+                    # Se non è una sequenza arrow, è solo ESC
+                    return KeyCode.ESC
+
+                # Enter su Linux
+                elif char == '\r' or char == '\n':
+                    return KeyCode.ENTER
+
+            # Carattere normale o non riconosciuto
+            return KeyCode.UNKNOWN
 
 @dataclass
 class Entry:
