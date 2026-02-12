@@ -109,12 +109,13 @@ class KeyboardInput:
     def start(self) -> None:
         """Start non-blocking keyboard input capture."""
         self._running = True
-        self._thread = threading.Thread(target=self._input_loop, daemon=True)
-        self._thread.start()
 
         if sys.platform != "win32":
             self._old_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
+
+        self._thread = threading.Thread(target=self._input_loop, daemon=True)
+        self._thread.start()
 
     def stop(self) -> None:
         """Stop keyboard input capture and restore terminal settings."""
@@ -135,10 +136,13 @@ class KeyboardInput:
                             self._key_buffer.append(char)
                 else:
                     # Linux/Unix: select controlla se c'è input disponibile
-                    if select.select([sys.stdin], [], [], 0.01)[0]:
-                        char = sys.stdin.read(1)
-                        with self._lock:
-                            self._key_buffer.append(char)
+                    fd = sys.stdin.fileno()
+                    if select.select([fd], [], [], 0.01)[0]:
+                        data = os.read(fd, 64)
+                        if data:
+                            chunk = data.decode('latin-1', errors='ignore')
+                            with self._lock:
+                                self._key_buffer.extend(list(chunk))
                 time.sleep(0.01)
             except Exception:
                 pass
@@ -168,10 +172,6 @@ class KeyboardInput:
         with self._lock:
             if not self._key_buffer:
                 return None
-            # DEBUG: stampa il contenuto del buffer
-            print(f"Buffer: {[repr(x) for x in self._key_buffer[:5]]}")
-            char = self._key_buffer.pop(0)
-            print(f"Char estratto: {repr(char)}")
             char = self._key_buffer.pop(0)
 
         char = _as_str(char)
@@ -230,19 +230,17 @@ class KeyboardInput:
             # Su Linux/Unix, le frecce inviano sequenze ESC [ A/B/C/D
             if char == '\x1b':  # ESC character
                 # Aspetta per vedere se è una sequenza escape o solo ESC
-                with self._lock:
-                    has_seq = len(self._key_buffer) >= 2 and _as_str(self._key_buffer[0]) in ('[', 'O')
+                deadline = time.monotonic() + 0.03
+                prefix = None
+                arrow_char = None
 
-                if not has_seq:
-                    time.sleep(0.02)  # Piccolo timeout per distinguere ESC da sequenze
-
-                with self._lock:
-                    if len(self._key_buffer) >= 2 and _as_str(self._key_buffer[0]) in ('[', 'O'):
-                        prefix = _as_str(self._key_buffer.pop(0))
-                        arrow_char = _as_str(self._key_buffer.pop(0))
-                    else:
-                        prefix = None
-                        arrow_char = None
+                while time.monotonic() < deadline:
+                    with self._lock:
+                        if len(self._key_buffer) >= 2 and _as_str(self._key_buffer[0]) in ('[', 'O'):
+                            prefix = _as_str(self._key_buffer.pop(0))
+                            arrow_char = _as_str(self._key_buffer.pop(0))
+                            break
+                    time.sleep(0.001)  # Piccolo timeout per distinguere ESC da sequenze
 
                 if prefix in ('[', 'O') and arrow_char is not None:
                     # È una sequenza escape, rimuovi il '['
