@@ -1,0 +1,75 @@
+{
+  "pages": {
+    "home": {
+      "title": "Menu Principale",
+      "entries": [
+        {
+          "label": "Opzione 1 - Saluta",
+          "action": "greet",
+          "next_page": null
+        },
+        {
+          "label": "Opzione 2 - Mostra Info",
+          "action": "show_info",
+          "next_page": null
+        },
+        {
+          "label": "Vai alle Impostazioni",
+          "action": null,
+          "next_page": "settings"
+        },
+        {
+          "label": "Esci",
+          "action": "exit_app",
+          "next_page": null
+        }
+      ]
+    },
+    "settings": {
+      "title": "Impostazioni",
+      "entries": [
+        {
+          "label": "Impostazione Display",
+          "action": "setting_display",
+          "next_page": null
+        },
+        {
+          "label": "Impostazione Audio",
+          "action": "setting_audio",
+          "next_page": null
+        },
+        {
+          "label": "Sottomenu Avanzate",
+          "action": null,
+          "next_page": "advanced"
+        },
+        {
+          "label": "Torna al Menu Principale",
+          "action": null,
+          "next_page": "home"
+        }
+      ]
+    },
+    "advanced": {
+      "title": "Impostazioni Avanzate",
+      "entries": [
+        {
+          "label": "Debug Mode",
+          "action": "toggle_debug",
+          "next_page": null
+        },
+        {
+          "label": "Reset Settings",
+          "action": "reset_settings",
+          "next_page": null
+        },
+        {
+          "label": "Torna Indietro",
+          "action": null,
+          "next_page": "settings"
+        }
+      ]
+    }
+  },
+  "start_page": "home"
+}
