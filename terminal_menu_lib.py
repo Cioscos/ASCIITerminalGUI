@@ -154,92 +154,115 @@ class KeyboardInput:
         Returns:
             KeyCode enum or None if no key available
         """
+
+        def _as_str(x):
+            if isinstance(x, bytes):
+                return x.decode('latin-1', errors='ignore')
+            if isinstance(x, int):
+                try:
+                    return chr(x)
+                except:
+                    return ''
+            return x if isinstance(x, str) else str(x)
+
         with self._lock:
             if not self._key_buffer:
                 return None
-
             char = self._key_buffer.pop(0)
 
-            # === WINDOWS ARROW KEY HANDLING ===
-            if sys.platform == "win32":
-                # Windows invia bytes, convertiamoli
-                if isinstance(char, bytes):
-                    char_byte = char
-                    try:
-                        char = char.decode('utf-8', errors='ignore')
-                    except:
-                        char_byte_val = ord(char_byte) if len(char_byte) > 0 else 0
-                else:
-                    char_byte_val = ord(char) if len(char) > 0 else 0
-                    char_byte = char.encode('latin-1', errors='ignore')
+        char = _as_str(char)
 
-                # Su Windows, i tasti speciali sono preceduti da 0xe0 (224) o 0x00 (0)
-                if char == '\xe0' or char == '\x00' or (
-                        isinstance(char_byte, bytes) and char_byte in (b'\xe0', b'\x00')):
-                    # Leggi il prossimo byte che contiene il codice del tasto
+        # === WINDOWS ARROW KEY HANDLING ===
+        if sys.platform == "win32":
+            # Windows invia bytes, convertiamoli
+            if isinstance(char, bytes):
+                char_byte = char
+                try:
+                    char = char.decode('utf-8', errors='ignore')
+                except:
+                    char_byte_val = ord(char_byte) if len(char_byte) > 0 else 0
+            else:
+                char_byte_val = ord(char) if len(char) > 0 else 0
+                char_byte = char.encode('latin-1', errors='ignore')
+
+            # Su Windows, i tasti speciali sono preceduti da 0xe0 (224) o 0x00 (0)
+            if char == '\xe0' or char == '\x00' or (
+                    isinstance(char_byte, bytes) and char_byte in (b'\xe0', b'\x00')):
+                # Leggi il prossimo byte che contiene il codice del tasto
+                with self._lock:
                     if self._key_buffer:
                         next_char = self._key_buffer.pop(0)
-                        if isinstance(next_char, bytes):
-                            next_char = next_char.decode('latin-1', errors='ignore')
+                    else:
+                        next_char = None
 
-                        # Codici Windows per i tasti freccia
-                        # H = 72 (0x48) = UP
-                        # P = 80 (0x50) = DOWN
-                        # M = 77 (0x4D) = RIGHT
-                        # K = 75 (0x4B) = LEFT
-                        if next_char == 'H' or ord(next_char) == 72:
-                            return KeyCode.UP
-                        elif next_char == 'P' or ord(next_char) == 80:
-                            return KeyCode.DOWN
-                        elif next_char == 'M' or ord(next_char) == 77:
-                            return KeyCode.RIGHT
-                        elif next_char == 'K' or ord(next_char) == 75:
-                            return KeyCode.LEFT
-                    return KeyCode.UNKNOWN
+                if next_char is not None:
+                    next_char = _as_str(next_char)
 
-                # Enter su Windows
-                elif char == '\r' or char == '\n':
-                    return KeyCode.ENTER
+                    # Codici Windows per i tasti freccia
+                    # H = 72 (0x48) = UP
+                    # P = 80 (0x50) = DOWN
+                    # M = 77 (0x4D) = RIGHT
+                    # K = 75 (0x4B) = LEFT
+                    if next_char == 'H' or ord(next_char) == 72:
+                        return KeyCode.UP
+                    elif next_char == 'P' or ord(next_char) == 80:
+                        return KeyCode.DOWN
+                    elif next_char == 'M' or ord(next_char) == 77:
+                        return KeyCode.RIGHT
+                    elif next_char == 'K' or ord(next_char) == 75:
+                        return KeyCode.LEFT
+                return KeyCode.UNKNOWN
 
-                # Escape su Windows
-                elif char == '\x1b':
-                    return KeyCode.ESC
+            # Enter su Windows
+            elif char == '\r' or char == '\n':
+                return KeyCode.ENTER
 
-            # === LINUX/UNIX ARROW KEY HANDLING ===
-            else:
-                # Su Linux/Unix, le frecce inviano sequenze ESC [ A/B/C/D
-                if char == '\x1b':  # ESC character
-                    # Aspetta per vedere se è una sequenza escape o solo ESC
+            # Escape su Windows
+            elif char == '\x1b':
+                return KeyCode.ESC
+
+        # === LINUX/UNIX ARROW KEY HANDLING ===
+        else:
+            # Su Linux/Unix, le frecce inviano sequenze ESC [ A/B/C/D
+            if char == '\x1b':  # ESC character
+                # Aspetta per vedere se è una sequenza escape o solo ESC
+                with self._lock:
+                    has_seq = len(self._key_buffer) >= 2 and _as_str(self._key_buffer[0]) in ('[', 'O')
+
+                if not has_seq:
                     time.sleep(0.02)  # Piccolo timeout per distinguere ESC da sequenze
 
-                    if len(self._key_buffer) >= 2 and self._key_buffer[0] == '[':
-                        # È una sequenza escape, rimuovi il '['
-                        self._key_buffer.pop(0)
+                with self._lock:
+                    if len(self._key_buffer) >= 2 and _as_str(self._key_buffer[0]) in ('[', 'O'):
+                        prefix = _as_str(self._key_buffer.pop(0))
+                        arrow_char = _as_str(self._key_buffer.pop(0))
+                    else:
+                        prefix = None
+                        arrow_char = None
 
-                        # Leggi il carattere successivo
-                        arrow_char = self._key_buffer.pop(0)
+                if prefix in ('[', 'O') and arrow_char is not None:
+                    # È una sequenza escape, rimuovi il '['
+                    # Leggi il carattere successivo
+                    # A = UP, B = DOWN, C = RIGHT, D = LEFT
+                    if arrow_char == 'A':
+                        return KeyCode.UP
+                    elif arrow_char == 'B':
+                        return KeyCode.DOWN
+                    elif arrow_char == 'C':
+                        return KeyCode.RIGHT
+                    elif arrow_char == 'D':
+                        return KeyCode.LEFT
+                    return KeyCode.UNKNOWN
 
-                        # A = UP, B = DOWN, C = RIGHT, D = LEFT
-                        if arrow_char == 'A':
-                            return KeyCode.UP
-                        elif arrow_char == 'B':
-                            return KeyCode.DOWN
-                        elif arrow_char == 'C':
-                            return KeyCode.RIGHT
-                        elif arrow_char == 'D':
-                            return KeyCode.LEFT
-                        else:
-                            return KeyCode.UNKNOWN
+                # Se non è una sequenza arrow, è solo ESC
+                return KeyCode.ESC
 
-                    # Se non è una sequenza arrow, è solo ESC
-                    return KeyCode.ESC
+            # Enter su Linux
+            elif char == '\r' or char == '\n':
+                return KeyCode.ENTER
 
-                # Enter su Linux
-                elif char == '\r' or char == '\n':
-                    return KeyCode.ENTER
-
-            # Carattere normale o non riconosciuto
-            return KeyCode.UNKNOWN
+        # Carattere normale o non riconosciuto
+        return KeyCode.UNKNOWN
 
 @dataclass
 class Entry:
