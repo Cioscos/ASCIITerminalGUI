@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "asciiterminalgui"
-version = "1.0.0"
+version = "1.0.1"
 description = "A complete Python library for building interactive terminal menus with keyboard navigation"
 readme = "README.md"
 requires-python = ">=3.9"

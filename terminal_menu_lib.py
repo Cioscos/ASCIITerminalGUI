@@ -3,7 +3,7 @@ ASCIITerminalGUI - A complete, self-contained Python library for rendering
 interactive terminal menus with keyboard navigation and multi-page support.
 
 Author: ASCIITerminalGUI
-Version: 1.0.0
+Version: 1.0.1
 License: MIT
 """
 
@@ -704,7 +704,7 @@ def main():
         input("\nPress Enter to continue...")
 
     def show_info():
-        print("\n📋 ASCIITerminalGUI v1.0.0")
+        print("\n📋 ASCIITerminalGUI v1.0.1")
         print("A powerful terminal menu library")
         input("\nPress Enter to continue...")
 
