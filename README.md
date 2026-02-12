@@ -195,14 +195,13 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## 📚 Additional Documentation
 
 - [Italian Documentation](docs/README_it.md) - Documentazione completa in italiano
-- [API Reference](docs/API.md) - Detailed API documentation
 - [Examples](examples) - More usage examples
 
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/yourusername/asciiterminalgui
-- **Issues**: https://github.com/yourusername/asciiterminalgui/issues
+- **Repository**: https://github.com/Cioscos/ASCIITerminalGUI
+- **Issues**: https://github.com/Cioscos/ASCIITerminalGUI/issues
 
 
 ## ⭐ Star History

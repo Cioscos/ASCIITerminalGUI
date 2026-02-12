@@ -201,8 +201,8 @@ I contributi sono benvenuti! Sentiti libero di inviare una Pull Request.
 
 ## 🔗 Link
 
-- **Repository**: [https://github.com/tuousername/asciiterminalgui](https://github.com/tuousername/asciiterminalgui)
-- **Issues**: [https://github.com/tuousername/asciiterminalgui/issues](https://github.com/tuousername/asciiterminalgui/issues)
+- **Repository**: https://github.com/Cioscos/ASCIITerminalGUI
+- **Issues**: https://github.com/Cioscos/ASCIITerminalGUI/issues
 
 
 ## ⭐ Star History
