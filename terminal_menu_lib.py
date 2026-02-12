@@ -134,9 +134,10 @@ class KeyboardInput:
                         with self._lock:
                             self._key_buffer.append(char)
                 else:
-                    # Linux/Unix: select controlla se c'è input disponibile
-                    if select.select([sys.stdin], [], [], 0.01)[0]:
+                    # Linux/Unix: leggi TUTTO l'input disponibile in un colpo solo
+                    while select.select([sys.stdin], [], [], 0)[0]:
                         char = sys.stdin.read(1)
+                        if not char: break
                         with self._lock:
                             self._key_buffer.append(char)
                 time.sleep(0.01)
