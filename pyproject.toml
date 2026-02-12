@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-    {name = "ASCIITerminalGUI", email = "dev@asciiterminalgui.dev"}
+    {name = "Cioscos", email = "claudiocicca98@gmail.com"}
 ]
 keywords = ["tui", "terminal", "menu", "cli", "interface", "console"]
 classifiers = [
