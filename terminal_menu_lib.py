@@ -12,6 +12,7 @@ import os
 import json
 import shutil
 import threading
+import collections
 import time
 from typing import Dict, List, Optional, Callable, Any, Tuple
 from dataclasses import dataclass, field
@@ -99,7 +100,7 @@ class KeyboardInput:
 
     def __init__(self):
         self._running = False
-        self._key_buffer: List[str] = []
+        self._key_buffer: collections.deque = collections.deque()
         self._lock = threading.Lock()
         self._thread: Optional[threading.Thread] = None
 
@@ -137,13 +138,13 @@ class KeyboardInput:
                 else:
                     # Linux/Unix: select checks if input is available
                     fd = sys.stdin.fileno()
-                    if select.select([fd], [], [], 0.01)[0]:
+                    if select.select([fd], [], [], 0.001)[0]:
                         data = os.read(fd, 64)
                         if data:
                             chunk = data.decode('latin-1', errors='ignore')
                             with self._lock:
                                 self._key_buffer.extend(list(chunk))
-                time.sleep(0.01)
+                time.sleep(0.001)
             except Exception:
                 pass
 
@@ -172,7 +173,7 @@ class KeyboardInput:
         with self._lock:
             if not self._key_buffer:
                 return None
-            char = self._key_buffer.pop(0)
+            char = self._key_buffer.popleft()
 
         char = _as_str(char)
 
@@ -195,7 +196,7 @@ class KeyboardInput:
                 # Read the next byte containing the key code
                 with self._lock:
                     if self._key_buffer:
-                        next_char = self._key_buffer.pop(0)
+                        next_char = self._key_buffer.popleft()
                     else:
                         next_char = None
 
@@ -235,8 +236,8 @@ class KeyboardInput:
                 while time.monotonic() < deadline:
                     with self._lock:
                         if len(self._key_buffer) >= 2 and _as_str(self._key_buffer[0]) in ('[', 'O'):
-                            prefix = _as_str(self._key_buffer.pop(0))
-                            arrow_char = _as_str(self._key_buffer.pop(0))
+                            prefix = _as_str(self._key_buffer.popleft())
+                            arrow_char = _as_str(self._key_buffer.popleft())
                             break
                     time.sleep(0.001)  # Small timeout to distinguish ESC from sequences
 
