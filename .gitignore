@@ -22,3 +22,6 @@ env/
 
 # uv package manager
 uv.lock
+
+# ai stuff
+skills/
