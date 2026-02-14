@@ -92,6 +92,16 @@ class KeyCode(Enum):
     RIGHT = "RIGHT"
     ENTER = "ENTER"
     ESC = "ESC"
+    CONTROL_E = "CONTROL_E"
+    NUM_1 = "NUM_1"
+    NUM_2 = "NUM_2"
+    NUM_3 = "NUM_3"
+    NUM_4 = "NUM_4"
+    NUM_5 = "NUM_5"
+    NUM_6 = "NUM_6"
+    NUM_7 = "NUM_7"
+    NUM_8 = "NUM_8"
+    NUM_9 = "NUM_9"
     UNKNOWN = "UNKNOWN"
 
 
@@ -176,6 +186,14 @@ class KeyboardInput:
             char = self._key_buffer.popleft()
 
         char = _as_str(char)
+
+        # Check for Ctrl+E (ASCII 5)
+        if char == "\x05":
+            return KeyCode.CONTROL_E
+
+        # Check for numeric keys 1-9
+        if char in "123456789":
+            return getattr(KeyCode, f"NUM_{char}")
 
         # === WINDOWS ARROW KEY HANDLING ===
         if sys.platform == "win32":
@@ -365,11 +383,16 @@ class TerminalMenu:
         self.running = False
 
         # Theme settings
+        # Theme settings
         self.theme_color = theme_color
         self.selected_bg = selected_bg
         self.selected_fg = selected_fg
         self.min_width = min_width
-        self.min_height = min_height
+        # Numbering mode flag
+        self.numbering_mode = False
+
+        # Numbering mode flag
+        self.numbering_mode = False
 
         # Keyboard handler
         self.keyboard = KeyboardInput()
@@ -519,7 +542,10 @@ class TerminalMenu:
         for idx, entry in enumerate(page.entries):
             if idx == page.selected_index:
                 # Highlight selected entry
-                entry_text = f" {entry.label} "
+                if self.numbering_mode:
+                    entry_text = f" {idx+1}. {entry.label} "
+                else:
+                    entry_text = f" {entry.label} "
                 padding = content_width - len(entry_text)
                 line = (
                     f"{self.theme_color}{BoxChars.VERTICAL}{Colors.RESET}"
@@ -528,7 +554,10 @@ class TerminalMenu:
                     f"{self.theme_color}{BoxChars.VERTICAL}{Colors.RESET}"
                 )
             else:
-                entry_text = f" {entry.label}"
+                if self.numbering_mode:
+                    entry_text = f" {idx+1}. {entry.label}"
+                else:
+                    entry_text = f" {entry.label}"
                 padding = content_width - len(entry_text)
                 line = (
                     f"{self.theme_color}{BoxChars.VERTICAL}{Colors.RESET}"
@@ -542,6 +571,13 @@ class TerminalMenu:
 
         # Help line
         help_text = "↑/↓: Navigate | Enter: Select | Esc: Back/Exit"
+        if self.numbering_mode:
+            help_text += " | 1-9: Select (Numbering)"
+        else:
+            help_text += " | Ctrl+e: Toggle numbering"
+        if self.numbering_mode:
+            help_text += " | 1-9: Select by number"
+        help_text += " | Ctrl+E: Toggle numbering"
         help_padding = (content_width - len(help_text)) // 2
         help_line = (
             f"{self.theme_color}{BoxChars.VERTICAL}{Colors.RESET}"
@@ -599,10 +635,23 @@ class TerminalMenu:
                 # Handle keyboard input
                 key = self.keyboard.get_key()
 
-                if key == KeyCode.UP:
+                if key == KeyCode.CONTROL_E:
+                    # Toggle numbering mode
+                    self.numbering_mode = not self.numbering_mode
+                    self.render()
+                    continue
+
+                if self.numbering_mode and key in [KeyCode.NUM_1, KeyCode.NUM_2, KeyCode.NUM_3, KeyCode.NUM_4, KeyCode.NUM_5, KeyCode.NUM_6, KeyCode.NUM_7, KeyCode.NUM_8, KeyCode.NUM_9]:
                     if self.current_page_name in self.pages:
-                        self.pages[self.current_page_name].move_up()
-                        self.render()
+                        page = self.pages[self.current_page_name]
+                        idx = int(key.value.split('_')[1]) - 1
+                        if 0 <= idx < len(page.entries):
+                            page.selected_index = idx
+                            next_page = page.entries[idx].execute()
+                            if next_page:
+                                self.go_to(next_page)
+                            self.render()
+                    continue
 
                 elif key == KeyCode.DOWN:
                     if self.current_page_name in self.pages:

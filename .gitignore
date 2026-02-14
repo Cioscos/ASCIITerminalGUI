@@ -24,4 +24,4 @@ env/
 uv.lock
 
 # ai stuff
-skills/
+.claude/
