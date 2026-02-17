@@ -8,7 +8,7 @@ version = "2.0.0"
 description = "A Python library for building interactive terminal menus with keyboard navigation."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Cioscos", email = "claudiocicca98@gmail.com" }]
 keywords = ["tui", "terminal", "menu", "cli", "interface", "console"]
 dependencies = ["pydantic>=2.0"]
