@@ -1,11 +1,11 @@
 """ASCIITerminalGUI — interactive terminal menus for Python 3.10+.
 
 Public API:
-    TerminalMenu  — main entry point for building and running menus.
-    EntryModel    — model for a single menu entry.
-    PageModel     — model for a menu page.
-    MenuTheme     — theme/colour configuration.
-    Colors        — convenience ANSI colour constants.
+    - TerminalMenu: main entry point for building and running menus.
+    - EntryModel: model for a single menu entry.
+    - PageModel: model for a menu page.
+    - MenuTheme: theme/colour configuration.
+    - Colors: convenience ANSI colour constants.
 
 Exceptions:
     TerminalMenuError, PageNotFoundError, DuplicatePageError,
@@ -22,9 +22,7 @@ from ._exceptions import (
 )
 from ._menu import TerminalMenu
 from ._models import EntryModel, MenuTheme, PageModel
-
-# Convenience colour constants (kept for backwards compatibility)
-from ._renderer import Styles as Colors
+from ._renderer import Styles as Colors  # Convenience colour constants
 
 __all__ = [
     # Core
@@ -42,5 +40,5 @@ __all__ = [
     "StartPageNotSetError",
 ]
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "Cioscos"

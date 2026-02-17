@@ -1,5 +1,4 @@
-"""TerminalMenu — the public-facing facade for ASCIITerminalGUI."""
-
+"""TerminalMenu — the public-facing façade for ASCIITerminalGUI."""
 from __future__ import annotations
 
 import json
@@ -22,18 +21,22 @@ from ._renderer import MenuRenderer
 
 
 class TerminalMenu:
-    """High-level facade for building and running an interactive terminal menu.
+    """High-level façade for building and running an interactive terminal menu.
 
     Supports programmatic construction and JSON-based configuration.
+    The menu is always rendered centred in the terminal window, and the
+    scrollback buffer is cleared on every frame so previous menu states
+    are never revealed when scrolling upward.
 
     Args:
-        theme_color: ANSI color code for borders and title text.
-        selected_bg: ANSI background for the highlighted entry.
-        selected_fg: ANSI foreground for the highlighted entry.
-        min_width: Minimum menu width in characters.
-        min_height: Minimum menu height in lines.
+        theme_color:  ANSI color code for borders and title text.
+        selected_bg:  ANSI background for the highlighted entry.
+        selected_fg:  ANSI foreground for the highlighted entry.
+        min_width:    Minimum menu width in characters.
+        min_height:   Minimum menu height in lines.
 
-    Example:
+    Example::
+
         menu = TerminalMenu()
         home = menu.add_page("home", "Main Menu")
         home.add_entry(EntryModel(label="Greet", action=lambda: print("Hello")))
@@ -64,18 +67,18 @@ class TerminalMenu:
         self._action_registry: dict[str, Callable[..., Any]] = {}
 
     # ------------------------------------------------------------------
-    # Page management
+    # Page & action management
     # ------------------------------------------------------------------
 
     def add_page(self, name: str, title: str = "") -> PageModel:
         """Create and register a new menu page.
 
         Args:
-            name: Unique page identifier.
-            title: Display title; defaults to *name* if blank.
+            name:  Unique page identifier.
+            title: Display title (defaults to *name* if blank).
 
         Returns:
-            The newly created :class:`~._models.PageModel`.
+            The newly created :class:`.models.PageModel`.
 
         Raises:
             DuplicatePageError: If a page with *name* already exists.
@@ -86,7 +89,7 @@ class TerminalMenu:
         self._pages[name] = page
         return page
 
-    def set_start_page(self, page_name: str) -> "TerminalMenu":
+    def set_start_page(self, page_name: str) -> TerminalMenu:
         """Designate the initial page shown when :meth:`run` is called.
 
         Args:
@@ -101,11 +104,13 @@ class TerminalMenu:
         self._nav.set_start(page_name)
         return self
 
-    def register_action(self, name: str, callback: Callable[..., Any]) -> "TerminalMenu":
+    def register_action(
+        self, name: str, callback: Callable[..., Any]
+    ) -> TerminalMenu:
         """Register a named callable for use in JSON-based configuration.
 
         Args:
-            name: Key used to reference this action in JSON.
+            name:     Key used to reference this action in JSON.
             callback: The callable to invoke.
 
         Returns:
@@ -115,7 +120,7 @@ class TerminalMenu:
         return self
 
     # ------------------------------------------------------------------
-    # JSON loader
+    # JSON factory
     # ------------------------------------------------------------------
 
     @classmethod
@@ -124,35 +129,35 @@ class TerminalMenu:
         path: str | Path,
         action_registry: dict[str, Callable[..., Any]] | None = None,
         **menu_kwargs: Any,
-    ) -> "TerminalMenu":
+    ) -> TerminalMenu:
         """Construct a :class:`TerminalMenu` from a JSON configuration file.
 
         The JSON format is::
 
             {
-                "pages": {
-                    "<page_id>": {
-                        "title": "Display Title",
-                        "entries": [
-                            {"label": "...", "action": "<key>", "next_page": null}
-                        ]
-                    }
-                },
-                "start_page": "<page_id>"
+              "pages": {
+                "<page_id>": {
+                  "title": "Display Title",
+                  "entries": [
+                    {"label": "...", "action": "<key>", "next_page": null}
+                  ]
+                }
+              },
+              "start_page": "<page_id>"
             }
 
         Args:
-            path: Path to the JSON configuration file.
-            action_registry: Mapping of action name strings to callables.
-            **menu_kwargs: Forwarded to :class:`TerminalMenu.__init__`.
+            path:            Path to the JSON configuration file.
+            action_registry: Mapping of action-name strings to callables.
+            **menu_kwargs:   Forwarded to :class:`TerminalMenu.__init__`.
 
         Returns:
             A fully configured :class:`TerminalMenu` instance.
 
         Raises:
-            FileNotFoundError: If *path* does not exist.
+            FileNotFoundError:     If *path* does not exist.
             MenuConfigurationError: If the JSON is malformed or missing
-                required fields.
+                                    required fields.
         """
         config_path = Path(path)
         if not config_path.exists():
@@ -162,14 +167,16 @@ class TerminalMenu:
             raw = config_path.read_text(encoding="utf-8")
             data: dict[str, Any] = json.loads(raw)
         except json.JSONDecodeError as exc:
-            raise MenuConfigurationError(f"Invalid JSON in '{path}': {exc}") from exc
+            raise MenuConfigurationError(f"Invalid JSON in {path}: {exc}") from exc
 
         registry = action_registry or {}
         menu = cls(**menu_kwargs)
 
         pages_data: dict[str, Any] = data.get("pages", {})
         if not pages_data:
-            raise MenuConfigurationError("JSON config must contain a non-empty 'pages' key.")
+            raise MenuConfigurationError(
+                "JSON config must contain a non-empty 'pages' key."
+            )
 
         for page_id, page_data in pages_data.items():
             if not isinstance(page_data, dict):
@@ -177,6 +184,7 @@ class TerminalMenu:
                     f"Page '{page_id}' must be a JSON object."
                 )
             page = menu.add_page(page_id, page_data.get("title", page_id))
+
             for raw_entry in page_data.get("entries", []):
                 action_key: str | None = raw_entry.get("action")
                 action_fn: Callable[..., Any] | None = (
@@ -196,19 +204,20 @@ class TerminalMenu:
 
         start_page: str | None = data.get("start_page")
         if not start_page:
-            raise MenuConfigurationError("JSON config must specify a 'start_page'.")
+            raise MenuConfigurationError(
+                "JSON config must specify a 'start_page'."
+            )
         menu.set_start_page(start_page)
-
         return menu
 
     # ------------------------------------------------------------------
-    # Main loop
+    # Runtime
     # ------------------------------------------------------------------
 
     def run(self) -> None:
         """Start the interactive menu loop.
 
-        Blocks until the user exits (``Ctrl+C`` or ``Esc`` on the root page).
+        Blocks until the user exits (Ctrl-C or Esc on the root page).
 
         Returns:
             None
@@ -217,9 +226,7 @@ class TerminalMenu:
             StartPageNotSetError: If :meth:`set_start_page` was never called.
         """
         if self._nav.current_page is None:
-            raise StartPageNotSetError(
-                "Call set_start_page() before run()."
-            )
+            raise StartPageNotSetError("Call set_start_page() before run().")
 
         self._keyboard.start()
         try:
@@ -230,8 +237,12 @@ class TerminalMenu:
             self._keyboard.stop()
             self._renderer.restore_cursor()
 
+    # ------------------------------------------------------------------
+    # Internal event loop
+    # ------------------------------------------------------------------
+
     def _event_loop(self) -> None:
-        """Core rendering and input dispatch loop.
+        """Core rendering and input-dispatch loop.
 
         Returns:
             None
@@ -240,10 +251,8 @@ class TerminalMenu:
             page = self._nav.current_page
             if page is None:
                 break
-
             self._renderer.render(page)
             key = self._wait_for_key()
-
             match key:
                 case KeyCode.UP:
                     page.move_up()
@@ -255,13 +264,13 @@ class TerminalMenu:
                     if not self._nav.go_back():
                         break
                 case _:
-                    pass  # Ignore unrecognised keys
+                    pass  # ignore unrecognised keys
 
     def _wait_for_key(self) -> KeyCode:
         """Poll the keyboard until a recognised key is available.
 
         Returns:
-            The next :class:`~._input.KeyCode` from the user.
+            The next :class:`.input.KeyCode` from the user.
         """
         while True:
             key = self._keyboard.get_key()
@@ -286,14 +295,14 @@ class TerminalMenu:
             next_page = entry.execute()
         except EntryActionError as exc:
             self._renderer.restore_cursor()
-            print(f"\n⚠ Error in '{exc.label}': {exc.cause}")
-            input("Press Enter to continue...")
+            print(f"\n Error in '{exc.label}': {exc.cause}")
+            input("Press Enter to continue…")
             return
 
         if next_page:
             try:
-                self._nav.go_to(next_page)
+                self._nav.goto(next_page)
             except PageNotFoundError as exc:
                 self._renderer.restore_cursor()
-                print(f"\n⚠ Navigation error: {exc}")
-                input("Press Enter to continue...")
+                print(f"\n Navigation error: {exc}")
+                input("Press Enter to continue…")

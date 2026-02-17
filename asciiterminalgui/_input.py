@@ -1,5 +1,4 @@
 """Cross-platform non-blocking keyboard input handler."""
-
 from __future__ import annotations
 
 import collections
@@ -11,13 +10,12 @@ from enum import Enum, auto
 
 class KeyCode(Enum):
     """Enumeration of recognisable keyboard inputs."""
-
-    UP = auto()
-    DOWN = auto()
-    LEFT = auto()
-    RIGHT = auto()
-    ENTER = auto()
-    ESC = auto()
+    UP     = auto()
+    DOWN   = auto()
+    LEFT   = auto()
+    RIGHT  = auto()
+    ENTER  = auto()
+    ESC    = auto()
     CTRL_C = auto()
     UNKNOWN = auto()
 
@@ -45,20 +43,21 @@ class KeyboardInput:
     """Cross-platform, non-blocking keyboard input reader.
 
     Uses ``msvcrt`` on Windows and ``select``/``termios`` on POSIX systems.
-    Keystrokes are pushed into a thread-safe deque and consumed via
-    :meth:`get_key`.
+    Keystrokes are pushed into a thread-safe :class:`collections.deque` and
+    consumed via :meth:`get_key`.
 
-    Example:
+    Example::
+
         kb = KeyboardInput()
         kb.start()
         key = kb.get_key()   # returns KeyCode or None
         kb.stop()
     """
 
-    _ESC_TIMEOUT: float = 0.03  # seconds to wait for escape sequence completion
+    ESC_TIMEOUT: float = 0.03  # seconds to wait for escape-sequence completion
 
     def __init__(self) -> None:
-        self._running = False
+        self._running: bool = False
         self._key_buffer: collections.deque[str] = collections.deque()
         self._lock = threading.Lock()
         self._thread: threading.Thread | None = None
@@ -71,7 +70,7 @@ class KeyboardInput:
     def start(self) -> None:
         """Start the background input-capture thread.
 
-        On POSIX systems the terminal is put in cbreak mode so individual
+        On POSIX systems the terminal is put in *cbreak* mode so individual
         keystrokes are available without pressing Enter.
 
         Returns:
@@ -81,10 +80,8 @@ class KeyboardInput:
         if sys.platform != "win32":
             import termios
             import tty
-
             self._old_settings = termios.tcgetattr(sys.stdin)
             tty.setcbreak(sys.stdin.fileno())
-
         self._thread = threading.Thread(target=self._input_loop, daemon=True)
         self._thread.start()
 
@@ -97,11 +94,29 @@ class KeyboardInput:
         self._running = False
         if sys.platform != "win32" and self._old_settings is not None:
             import termios
-
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._old_settings)
 
     # ------------------------------------------------------------------
-    # Internal loop
+    # Key consumption
+    # ------------------------------------------------------------------
+
+    def get_key(self) -> KeyCode | None:
+        """Consume the next key from the buffer and return its :class:`KeyCode`.
+
+        Returns:
+            A :class:`KeyCode` value, or ``None`` if the buffer is empty.
+        """
+        with self._lock:
+            if not self._key_buffer:
+                return None
+            char = self._key_buffer.popleft()
+
+        if sys.platform == "win32":
+            return self._parse_windows_key(char)
+        return self._parse_posix_key(char)
+
+    # ------------------------------------------------------------------
+    # Background input loops
     # ------------------------------------------------------------------
 
     def _input_loop(self) -> None:
@@ -126,7 +141,6 @@ class KeyboardInput:
             None
         """
         import msvcrt
-
         while self._running:
             if msvcrt.kbhit():
                 raw = msvcrt.getch()
@@ -158,26 +172,7 @@ class KeyboardInput:
                 time.sleep(0.01)
 
     # ------------------------------------------------------------------
-    # Public key consumption
-    # ------------------------------------------------------------------
-
-    def get_key(self) -> KeyCode | None:
-        """Consume the next key from the buffer and return its KeyCode.
-
-        Returns:
-            A :class:`KeyCode` value, or ``None`` if the buffer is empty.
-        """
-        with self._lock:
-            if not self._key_buffer:
-                return None
-            char = self._key_buffer.popleft()
-
-        if sys.platform == "win32":
-            return self._parse_windows_key(char)
-        return self._parse_posix_key(char)
-
-    # ------------------------------------------------------------------
-    # Platform parsers
+    # Key parsers
     # ------------------------------------------------------------------
 
     def _parse_windows_key(self, char: str) -> KeyCode:
@@ -189,7 +184,7 @@ class KeyboardInput:
         Returns:
             The matching :class:`KeyCode`.
         """
-        if char in ("\xe0", "\x00"):
+        if char in ("\x00", "\xe0"):
             return self._read_windows_extended()
         if char in ("\r", "\n"):
             return KeyCode.ENTER
@@ -211,7 +206,7 @@ class KeyboardInput:
             "M": KeyCode.RIGHT,
             "K": KeyCode.LEFT,
         }
-        deadline = time.monotonic() + self._ESC_TIMEOUT
+        deadline = time.monotonic() + self.ESC_TIMEOUT
         while time.monotonic() < deadline:
             with self._lock:
                 if self._key_buffer:
@@ -252,14 +247,13 @@ class KeyboardInput:
         """Wait briefly for the remainder of a CSI/SS3 escape sequence.
 
         Returns:
-            A tuple ``(prefix, arrow_char)`` where *prefix* is ``'['`` or
-            ``'O'``, and *arrow_char* is the final letter.  Both are ``None``
+            A tuple ``(prefix, arrow_char)`` where *prefix* is ``[`` or
+            ``O``, and *arrow_char* is the final letter.  Both are ``None``
             if the timeout expires without a complete sequence.
         """
-        deadline = time.monotonic() + self._ESC_TIMEOUT
+        deadline = time.monotonic() + self.ESC_TIMEOUT
         prefix: str | None = None
         arrow: str | None = None
-
         while time.monotonic() < deadline:
             with self._lock:
                 if len(self._key_buffer) >= 2 and self._key_buffer[0] in ("[", "O"):
@@ -267,5 +261,4 @@ class KeyboardInput:
                     arrow = self._key_buffer.popleft()
                     return prefix, arrow
             time.sleep(0.001)
-
         return prefix, arrow

@@ -1,5 +1,4 @@
-"""Navigation controller: manages page history and transitions."""
-
+"""Navigation controller — manages page history and transitions."""
 from __future__ import annotations
 
 from ._exceptions import PageNotFoundError
@@ -10,12 +9,13 @@ class NavigationController:
     """Manages multi-page navigation with a history stack.
 
     Args:
-        pages: A mapping of page names to :class:`~._models.PageModel`.
+        pages: A mapping of page names to :class:`.models.PageModel`.
 
-    Example:
+    Example::
+
         nav = NavigationController(pages)
         nav.set_start("home")
-        nav.go_to("settings")
+        nav.goto("settings")
         nav.go_back()
     """
 
@@ -30,7 +30,7 @@ class NavigationController:
 
     @property
     def current_page(self) -> PageModel | None:
-        """Return the currently active :class:`~._models.PageModel`.
+        """Return the currently active :class:`.models.PageModel`.
 
         Returns:
             The active page, or ``None`` if no start page has been set.
@@ -44,7 +44,7 @@ class NavigationController:
         """Whether there is a page to navigate back to.
 
         Returns:
-            True if the history stack is non-empty.
+            ``True`` if the history stack is non-empty.
         """
         return bool(self._history)
 
@@ -68,8 +68,8 @@ class NavigationController:
         self._current = page_name
         self._history.clear()
 
-    def go_to(self, page_name: str) -> None:
-        """Navigate to *page_name*, pushing the current page onto the history.
+    def goto(self, page_name: str) -> None:
+        """Navigate to *page_name*, pushing the current page onto history.
 
         Args:
             page_name: Name of the target page.
@@ -89,7 +89,7 @@ class NavigationController:
         """Pop the previous page from history and make it current.
 
         Returns:
-            True if navigation succeeded; False if the stack was empty.
+            ``True`` if navigation succeeded; ``False`` if the stack was empty.
         """
         if not self._history:
             return False
@@ -107,7 +107,7 @@ class NavigationController:
         self._current = start
 
     # ------------------------------------------------------------------
-    # Internal
+    # Internal helpers
     # ------------------------------------------------------------------
 
     def _validate_page(self, page_name: str) -> None:

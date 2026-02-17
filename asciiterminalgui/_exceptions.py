@@ -48,4 +48,4 @@ class MenuConfigurationError(TerminalMenuError):
 
 
 class StartPageNotSetError(TerminalMenuError):
-    """Raised when run() is called before setting a start page."""
+    """Raised when :meth:`run` is called before setting a start page."""

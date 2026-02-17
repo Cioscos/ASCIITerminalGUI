@@ -1,5 +1,4 @@
 """Pydantic V2 models for ASCIITerminalGUI data structures."""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -14,11 +13,11 @@ class EntryModel(BaseModel):
     """Represents a single selectable entry in a menu page.
 
     Attributes:
-        label: The text displayed for this entry.
-        action: Optional callable invoked when the entry is selected.
+        label:     The text displayed for this entry.
+        action:    Optional callable invoked when the entry is selected.
         next_page: Optional name of the page to navigate to after selection.
-        enabled: Whether the entry can be selected.
-        metadata: Arbitrary extra data attached to the entry.
+        enabled:   Whether the entry can be selected.
+        metadata:  Arbitrary extra data attached to the entry.
     """
 
     model_config = {"arbitrary_types_allowed": True}
@@ -36,7 +35,7 @@ class EntryModel(BaseModel):
     @field_validator("label")
     @classmethod
     def label_must_not_be_blank(cls, value: str) -> str:
-        """Ensure label is not just whitespace.
+        """Ensure *label* is not just whitespace.
 
         Args:
             value: The raw label string.
@@ -45,7 +44,7 @@ class EntryModel(BaseModel):
             The stripped label.
 
         Raises:
-            ValueError: If label is blank.
+            ValueError: If the label is blank after stripping.
         """
         stripped = value.strip()
         if not stripped:
@@ -56,7 +55,7 @@ class EntryModel(BaseModel):
         """Execute the entry's action and return the next page name, if any.
 
         Returns:
-            The next page name to navigate to, or None.
+            The next page name to navigate to, or ``None``.
 
         Raises:
             EntryActionError: If the action callback raises an exception.
@@ -75,9 +74,9 @@ class PageModel(BaseModel):
     """Represents a menu page composed of multiple entries.
 
     Attributes:
-        name: Unique identifier for this page.
-        title: Display title shown in the menu header.
-        entries: Ordered list of selectable entries.
+        name:           Unique identifier for this page.
+        title:          Display title shown in the menu header.
+        entries:        Ordered list of selectable entries.
         selected_index: Index of the currently highlighted entry.
     """
 
@@ -87,21 +86,21 @@ class PageModel(BaseModel):
     selected_index: int = Field(default=0)
 
     @model_validator(mode="after")
-    def title_defaults_to_name(self) -> "PageModel":
-        """Fall back to page name if title is empty.
+    def title_defaults_to_name(self) -> PageModel:
+        """Fall back to *name* if *title* is empty.
 
         Returns:
-            The validated PageModel instance.
+            The validated ``PageModel`` instance.
         """
         if not self.title:
             self.title = self.name
         return self
 
-    def add_entry(self, entry: EntryModel) -> "PageModel":
-        """Append an entry to this page.
+    def add_entry(self, entry: EntryModel) -> PageModel:
+        """Append *entry* to this page.
 
         Args:
-            entry: The EntryModel to add.
+            entry: The :class:`EntryModel` to add.
 
         Returns:
             Self, for method chaining.
@@ -114,12 +113,12 @@ class PageModel(BaseModel):
         """Return only enabled entries.
 
         Returns:
-            Filtered list of enabled EntryModel objects.
+            Filtered list of enabled :class:`EntryModel` objects.
         """
         return [e for e in self.entries if e.enabled]
 
     def move_up(self) -> None:
-        """Move selection index up, wrapping around.
+        """Move the selection index up, wrapping around.
 
         Returns:
             None
@@ -128,7 +127,7 @@ class PageModel(BaseModel):
             self.selected_index = (self.selected_index - 1) % len(self.entries)
 
     def move_down(self) -> None:
-        """Move selection index down, wrapping around.
+        """Move the selection index down, wrapping around.
 
         Returns:
             None
@@ -141,7 +140,7 @@ class PageModel(BaseModel):
         """Return the currently selected entry.
 
         Returns:
-            The selected EntryModel, or None if no entries exist.
+            The selected :class:`EntryModel`, or ``None`` if no entries exist.
         """
         if 0 <= self.selected_index < len(self.entries):
             return self.entries[self.selected_index]
@@ -152,11 +151,11 @@ class MenuTheme(BaseModel):
     """Visual theme configuration for the terminal menu.
 
     Attributes:
-        theme_color: ANSI color code for borders and title.
-        selected_bg: ANSI background code for the selected item.
-        selected_fg: ANSI foreground code for selected item text.
-        min_width: Minimum menu width in characters.
-        min_height: Minimum menu height in lines.
+        theme_color:  ANSI color code for borders and title.
+        selected_bg:  ANSI background code for the selected item.
+        selected_fg:  ANSI foreground code for selected item text.
+        min_width:    Minimum menu width in characters.
+        min_height:   Minimum menu height in lines.
     """
 
     theme_color: str = Field(default="\033[96m")
