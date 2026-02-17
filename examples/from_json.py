@@ -6,7 +6,7 @@ Demonstrates JSON-based menu creation.
 
 import sys
 import time
-from terminal_menu_lib import TerminalMenu
+from asciiterminalgui import TerminalMenu, EntryModel
 
 
 def example_from_json():

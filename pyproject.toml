@@ -4,33 +4,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "asciiterminalgui"
-version = "1.0.1"
-description = "A complete Python library for building interactive terminal menus with keyboard navigation"
+version = "2.0.0"
+description = "A Python library for building interactive terminal menus with keyboard navigation."
 readme = "README.md"
-requires-python = ">=3.9"
-license = "MIT"
-authors = [
-    {name = "Cioscos", email = "claudiocicca98@gmail.com"}
-]
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Cioscos", email = "claudiocicca98@gmail.com" }]
 keywords = ["tui", "terminal", "menu", "cli", "interface", "console"]
+dependencies = ["pydantic>=2.0"]
+
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: System :: Shells",
     "Topic :: Terminals",
 ]
 
 [project.urls]
 Homepage = "https://github.com/Cioscos/ASCIITerminalGUI"
-Documentation = "https://github.com/Cioscos/ASCIITerminalGUI/blob/master/README.md"
 Repository = "https://github.com/Cioscos/ASCIITerminalGUI"
 
-[tool.setuptools]
-py-modules = ["terminal_menu_lib"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["asciiterminalgui*"]

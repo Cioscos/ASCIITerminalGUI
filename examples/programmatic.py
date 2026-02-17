@@ -5,7 +5,7 @@ Demonstrates programmatic menu creation.
 
 import sys
 import time
-from terminal_menu_lib import TerminalMenu, Entry
+from asciiterminalgui import TerminalMenu, EntryModel
 
 
 def example_programmatic():
@@ -46,24 +46,24 @@ def example_programmatic():
 
     # Home page
     home = menu.add_page("home", "🏠 Menu Principale")
-    home.add_entry(Entry("Saluta", action=greet))
-    home.add_entry(Entry("Informazioni", action=show_info))
-    home.add_entry(Entry("Calcolatrice", action=calculator))
-    home.add_entry(Entry("Vai a Strumenti", next_page="tools"))
-    home.add_entry(Entry("Esci", action=exit_app))
+    home.add_entry(EntryModel(label="Saluta", action=greet))
+    home.add_entry(EntryModel(label="Informazioni", action=show_info))
+    home.add_entry(EntryModel(label="Calcolatrice", action=calculator))
+    home.add_entry(EntryModel(label="Vai a Strumenti", next_page="tools"))
+    home.add_entry(EntryModel(label="Esci", action=exit_app))
 
     # Tools page
     tools = menu.add_page("tools", "🔧 Strumenti")
-    tools.add_entry(Entry("Strumento 1", action=lambda: print("\nStrumento 1")))
-    tools.add_entry(Entry("Strumento 2", action=lambda: print("\nStrumento 2")))
-    tools.add_entry(Entry("Impostazioni", next_page="settings"))
-    tools.add_entry(Entry("Torna a Home", next_page="home"))
+    tools.add_entry(EntryModel(label="Strumento 1", action=lambda: print("\nStrumento 1")))
+    tools.add_entry(EntryModel(label="Strumento 2", action=lambda: print("\nStrumento 2")))
+    tools.add_entry(EntryModel(label="Impostazioni", next_page="settings"))
+    tools.add_entry(EntryModel(label="Torna a Home", next_page="home"))
 
     # Settings page
     settings = menu.add_page("settings", "⚙️ Impostazioni")
-    settings.add_entry(Entry("Display", action=lambda: print("\nImpostazioni Display")))
-    settings.add_entry(Entry("Audio", action=lambda: print("\nImpostazioni Audio")))
-    settings.add_entry(Entry("Torna Indietro", next_page="tools"))
+    settings.add_entry(EntryModel(label="Display", action=lambda: print("\nImpostazioni Display")))
+    settings.add_entry(EntryModel(label="Audio", action=lambda: print("\nImpostazioni Audio")))
+    settings.add_entry(EntryModel(label="Torna Indietro", next_page="tools"))
 
     menu.set_start_page("home")
     menu.run()
